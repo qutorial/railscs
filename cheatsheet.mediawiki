@@ -81,23 +81,60 @@ There is an OWASP [[Session Management Cheat Sheet]].
 
 == Authentication == 
 
-Generally speaking, Rails does not provide authentication by itself.  However, most developers using Rails leverage libraries such as Devise or AuthLogic to provide authentication.  To enable authentication with Devise, one simply has to put the following in a controller:
+Generally speaking, Rails does not provide authentication by itself.  However, most developers using Rails leverage libraries such as Devise or AuthLogic to provide authentication.  
 
-    class ProjectController < ApplicationController
-        before_filter :authenticate_user
+To enable authentication it is possible to use Devise gem.
 
-As with other methods, this supports exceptions.  Note that by default Devise only requires 6 characters for a password.  The minimum can be changed in:  /config/initializers/devise.rb
+Install it using:
+    
+    gem 'devise'
 
-    config.password_length = 8..128
+Then install it to the user model:
 
-There are several possible ways to enforce complexity.  One is to put a Validator in the user model.
-      
-    validate :password_complexity
-    def password_complexity
-       if password.present? and not password.match(/\A(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+\z/)
-           errors.add :password, "must include at least one lowercase letter, one uppercase letter, and one digit"
-       end
+    rails generate devise:install
+
+Next, specify which resources (routes) require authenticated access in routes:
+
+    
+    Rails.application.routes.draw do
+      authenticate :user do
+        resources :something do  # these resource require authentication
+         ...
+        end
+      end
+  
+      devise_for :users # sign-up/-in/out routes
+
+      root to: 'static#home' # no authentication required
+  
     end
+
+To enforce password complexity, it is possible to use [https://github.com/bitzesty/devise_zxcvbn zxcvbn gem].
+Configure your user model with it:
+
+    class User < ApplicationRecord
+      devise :database_authenticatable, 
+        # other devise features, then
+        :zxcvbnable
+    end
+
+And configure the required password complexity:
+
+    # in config/initializers/devise.rb
+    Devise.setup do |config|
+      # zxcvbn score for devise
+      config.min_password_score = 4 # complexity score here.
+      ...
+
+
+
+You can try out [https://github.com/qutorial/revise this PoC], to learn more about it.
+
+
+Next, [https://github.com/omniauth/omniauth omniauth gem] allows for multiple strategies 
+for authentication. Using it one can configure secure authentication with Facebook, LDAP
+and many other providers. Read on [https://github.com/omniauth/omniauth#integrating-omniauth-into-your-application here].
+
 
 There is an OWASP [[Authentication Cheat Sheet]].
 
@@ -317,6 +354,7 @@ Jon Claudius - jonathan.claudius [at] gmail.com<br/>
 Jim Manico jim [at] owasp.org<br/>
 Aaron Bedra aaron [at] aaronbedra.com<br/>
 Egor Homakov homakov [at] gmail.com<br/>
+Zaur Molotnikov qutorial [at] gmail.com<br/>
 
 = Related Articles and References = 
 
